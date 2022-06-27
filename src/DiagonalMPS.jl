@@ -13,7 +13,7 @@ mutable struct DiagonalMPS
     function DiagonalMPS(d::Int64, nb::Int64, bh::Int64, bw::Int64, o::Int64)
         X = Array{BlockMPS}(undef, nb)
         for i = 1:nb
-            X[i] = BlockMPS(i, i + Offset, bh, bw)
+            X[i] = BlockMPS(i, i + o, bh, bw)
         end
     end
 end

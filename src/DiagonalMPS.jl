@@ -2,7 +2,9 @@
 A DiagonalMPS structure represents a set of BlockMPS block X_{k}[L] into the MPS structure,
 with diagonal number "Diagonal" and number of BlockMPS "NBlock", each of size (BlockHeight X BlockWidth).
 """
-mutable struct DiagonalMPS
+abstract type AbstractDiagonalMPS end
+
+mutable struct DiagonalMPS <: AbstractDiagonalMPS
     Diagonal::Int64
     NBlock::Int64
     BlockHeight::Int64

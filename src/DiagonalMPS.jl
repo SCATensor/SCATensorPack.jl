@@ -149,12 +149,12 @@ function RandomDiagonalMPS(diagN, nblocks, sizes)
 end
 
 """
-SetBlock!(diagMPS, 1, (3, 3), [1.0 2.0 3.0; 4.0 5.0 6.0; 7.0 8.0 9.0])
+SetDiagonalBlock!(diagMPS, 1, (3, 3), [1.0 2.0 3.0; 4.0 5.0 6.0; 7.0 8.0 9.0])
 
 Sets the size of the first sub-block to 3 X 3 and its elements to the ones provided
 as third argument.
 """
-function SetBlock!(diagMPS::DiagonalMPS, i, size, NewX)
+function SetDiagonalBlock!(diagMPS::DiagonalMPS, i, size, NewX)
 #=     if !isinteger(i)
         error("$(typeof(i)) is not accepted as index. It should be a positive integer.")
         return nothing
@@ -170,34 +170,39 @@ function SetBlock!(diagMPS::DiagonalMPS, i, size, NewX)
         return nothing
     end
  =#
+
+    index = convert(UInt16, i)
     newSize = convert(Tuple{UInt16, UInt16}, size)
     newX = convert(Matrix{Float64}, NewX)
-    diagMPS.X[i] = newX
-    diagMPS.BlockSizes[i] = newSize
+    diagMPS.X[index] = newX
+    diagMPS.BlockSizes[index] = newSize
 
     nothing
 end
 
 """
-GetBlock(diagMPS, 1)
+GetDiagonalBlock(diagMPS, 1)
 
 Gets the first sub-block.
 """
-function GetBlock(diagMPS::DiagonalMPS, i)
+function GetDiagonalBlock(diagMPS::DiagonalMPS, i)
 #=     if !isinteger(i)
         error("$(typeof(i)) is not accepted as index. It should be a positive integer.")
         return nothing
     end
  =#
-    return diagMPS.X[i]
+
+    index = convert(UInt16, i)
+
+    return diagMPS.X[index]
 end
 
 """
-SetBlockElement!(diagMPS, 1, (2, 2), 0.5)
+SetDiagonalBlockElement!(diagMPS, 1, (2, 2), 0.5)
 
 Sets the element located at (2, 2) of the first sub-block with value 0.5.
 """
-function SetBlockElement!(diagMPS::DiagonalMPS, i, coords, value)
+function SetDiagonalBlockElement!(diagMPS::DiagonalMPS, i, coords, value)
 #=     if !isinteger(i)
         error("$(typeof(i)) is not accepted as index. It should be a positive integer.")
         return nothing
@@ -213,19 +218,21 @@ function SetBlockElement!(diagMPS::DiagonalMPS, i, coords, value)
         return nothing
     end
  =#
+    
+    index = convert(UInt16, i)
     c = convert(Tuple{UInt16, UInt16}, coords)
     val = convert(Float64, value)
-    diagMPS.X[i][c[1]][c[2]] = val
+    diagMPS.X[index][c[1]][c[2]] = val
 
     nothing
 end
 
 """
-GetBlockElement(diagMPS, 1, (2, 2))
+GetDiagonalBlockElement(diagMPS, 1, (2, 2))
 
 Gets the element located at (2, 2) of the first sub-block.
 """
-function GetBlockElement(diagMPS::DiagonalMPS, i, coords)
+function GetDiagonalBlockElement(diagMPS::DiagonalMPS, i, coords)
 #=     if !isinteger(i)
         error("$(typeof(i)) is not accepted as index. It should be a positive integer.")
         return nothing
@@ -236,8 +243,54 @@ function GetBlockElement(diagMPS::DiagonalMPS, i, coords)
         return nothing
     end
  =#
+
+    index = convert(UInt16, i)
     c = convert(Tuple{UInt16, UInt16}, coords)
-    return diagMPS.X[i][c[1]][c[2]]
+    
+    return diagMPS.X[index][c[1]][c[2]]
+end
+
+"""
+DiagonalQR!(diagMPS, 1)
+
+Computes the QR factorization over the first sub-block, overwriting the X[1]
+values with the Q[1] orthogonal matrix values and returning the R[1] upper
+triangular matrix.
+"""
+function DiagonalQR!(diagMPS::DiagonalMPS, i)
+#=     if !isinteger(i)
+        error("$(typeof(i)) is not accepted as index. It should be a positive integer.")
+        return nothing
+    end
+ =#
+
+    index = convert(UInt16, i)
+
+    F = qr(diagMPS.X[index])
+    diagMPS.X[index] = Matrix(F.Q)
+
+    return Matrix(F.R)
+end
+
+"""
+DiagonalRXMultiplication!(diagMPS, R, 2)
+
+Multiplies the provided R upper triangular matrix with the X[2], overwriting the X[2]
+values with the result of the multiplication.
+"""
+function DiagonalRXMultiplication!(diagMPS::DiagonalMPS, R, i)
+#=     if !isinteger(i)
+        error("$(typeof(i)) is not accepted as index. It should be a positive integer.")
+        return nothing
+    end
+ =#
+
+    R_ = convert(Matrix{Float64}, R)
+    index = convert(UInt16, i)
+
+    diagMPS.X[index] = R_ * diagMPS.X[index]
+
+    nothing
 end
 
 """

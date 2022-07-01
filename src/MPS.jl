@@ -112,6 +112,6 @@ function PrintMPS(mps::MPS)
         PrintDiagonalMPS(mps.X[i][2])
         @printf("\n")
     end
+    
     nothing
-
 end

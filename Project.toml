@@ -2,3 +2,7 @@ name = "SCATensorPack"
 uuid = "37ee01e3-7648-47ac-8a03-1315da9608e7"
 authors = ["Daniel Torres <daniel.torres-gonzales@inria.fr>"]
 version = "0.1.0"
+
+[deps]
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"

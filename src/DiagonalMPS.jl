@@ -117,7 +117,7 @@ Constructs a new DiagonalMPS structure with diagonal number 1 and 2 sub-blocks:
 the first one of size 3 X 4, the second one of size 2 X 5.
 Elements in the sub-blocks are set to random floating point values.
 """
-function RandomDiagonalMPS(diagN, nblocks, sizes)
+function RandomDiagonalMPS(diagN, nblocks, sizes,id)
 #=     if !isinteger(diagN)
         error("$(typeof(diagN)) is not accepted as DiagNumber attribute. It should be a positive integer.")
         return nothing
@@ -136,12 +136,13 @@ function RandomDiagonalMPS(diagN, nblocks, sizes)
     dNumber = convert(UInt8, diagN)
     nBlocks = convert(UInt16, nblocks)
     bSizes = convert(Array{Tuple{UInt16, UInt16}}, sizes)
-    
+    indices=convert(Array{Tuple{Int64,Int64},1},id)
+
     X_ = Array{Matrix{Float64}}(undef, nBlocks)
-    indices = Array{Tuple{UInt16, UInt16}}(undef, nBlocks)
+    #indices = Array{Tuple{UInt16, UInt16}}(undef, nBlocks)
 
     for i = 1 : nBlocks
-        indices[i] = (i, i)
+        #indices[i] = (i, i)
         X_[i] = rand(bSizes[i][1], bSizes[i][2])
     end
 
@@ -218,7 +219,7 @@ function SetDiagonalBlockElement!(diagMPS::DiagonalMPS, i, coords, value)
         return nothing
     end
  =#
-    
+
     index = convert(UInt16, i)
     c = convert(Tuple{UInt16, UInt16}, coords)
     val = convert(Float64, value)
@@ -246,7 +247,7 @@ function GetDiagonalBlockElement(diagMPS::DiagonalMPS, i, coords)
 
     index = convert(UInt16, i)
     c = convert(Tuple{UInt16, UInt16}, coords)
-    
+
     return diagMPS.X[index][c[1]][c[2]]
 end
 
@@ -291,6 +292,40 @@ function DiagonalRXMultiplication!(diagMPS::DiagonalMPS, R, i)
     diagMPS.X[index] = R_ * diagMPS.X[index]
 
     nothing
+end
+
+"""
+Author: Siwar Badreddine
+getindices(1,3,6,1)
+
+Gives back the sub-block indices of the first tensor core X_1[0] for 3 particles and 6 sites
+with respect to the number of particles
+"""
+function getindices(i,N,K,diagN)::Array{Tuple{Int64,Int64},1}
+
+
+    i  = convert(UInt16, i)
+    N  = convert(UInt16, N)
+    K  = convert(UInt16, K)
+    diagN  = convert(UInt16, diagN)
+    indices = Array{Tuple{UInt16, UInt16}}(undef)
+    if i < (K-N+1)
+        if i> N
+            indices=[(l-(diagN-1),l-(diagN-1)) for l=diagN:N+1]
+        else
+            indices=[(l,l) for l=1:i]
+        end
+    else
+        leq=i-(K-N)+1-(diagN-1)
+        geq=N-(diagN-1)+1
+        if i<=N
+            indices=[(l,l) for l=leq:(N-i+1)+1]
+        else
+            indices=[(l,l) for l=leq:geq]
+        end
+    end
+
+    return indices
 end
 
 """

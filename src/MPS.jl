@@ -67,31 +67,67 @@ function RandomMPS(k, n)
  =#
     K = convert(UInt16, k)
     N = convert(UInt16, n)
-    
+
     X_ = Array{Tuple{DiagonalMPS, DiagonalMPS}}(undef, K)
-    sizesRow = Array{UInt16}(undef, N)
-    sizesCol = Array{UInt16}(undef, N)
+    sizesRow = Array{UInt16}(undef, N+1)
+    sizesCol = Array{UInt16}(undef, N+1)
     ran = 2 : 2^3
 
-    for i = 1 : N
-        sizesRow[i], sizesCol[i] = rand(ran), rand(ran)
-    end
-
+    #sizesRow[1], sizesCol[1] = 1, rand(ran)
+    #sizesRow[N+1], sizesCol[N+1] = rand(ran), 1
+    #for i = 2 : N
+        #sizesRow[i], sizesCol[i] = rand(ran), rand(ran)
+    #end
+    sizesRow[1]=1
     for i = 1 : K
-        sizes1 = Array{Tuple{UInt16, UInt16}}(undef, N)
-        sizes2 = Array{Tuple{UInt16, UInt16}}(undef, N - 1)
 
-        for j = 1 : N
-            sizes1[j] = (sizesRow[j], sizesCol[j])
+
+        indices1=getindices(i,N,K,1)
+        indices2=getindices(i,N,K,2)
+        N1=length(indices1)
+        N2=length(indices2)
+        sizes1 = Array{Tuple{UInt16, UInt16}}(undef, N1)
+        sizes2 = Array{Tuple{UInt16, UInt16}}(undef, N2)
+
+        for j = 1 :  max(N1,N2+1)
+                 sizesCol[j] =  rand(ran)
         end
 
-        for j = 2 : N
-            sizes2[j - 1] = (sizesRow[j - 1], sizesCol[j])
+
+
+        l=1
+        for j=indices1[1][1]:indices1[N1][1]
+            if i==K
+                sizes1[l] = (sizesRow[j], 1)
+            else
+                sizes1[l] = (sizesRow[j], sizesCol[j])
+            end
+            l+=1
         end
 
-        diag1 = RandomDiagonalMPS(1, N, sizes1)
-        diag2 = RandomDiagonalMPS(2, N - 1, sizes2)
+        l=2
+        for j = indices2[1][1]+1 : indices2[N2][1]+1 
+            if i==K
+                sizes2[l - 1] = (sizesRow[j - 1], 1)
+            else
+                sizes2[l - 1] = (sizesRow[j - 1], sizesCol[j])
+            end
+            l+=1
+        end
+        for j=1:max(N1,N2+1)
+            @printf("Hello \n")
+            @printf("%d",sizesRow[j])
+            @printf(" %d",sizesCol[j])
+        end
+        sizesRow=copy(sizesCol)
+
+
+
+
+        diag1 = RandomDiagonalMPS(1, N1, sizes1,indices1)
+        diag2 = RandomDiagonalMPS(2, N2, sizes2,indices2)
         X_[i] = (diag1, diag2)
+
     end
 
     return MPS(K, N, X_)
@@ -112,6 +148,6 @@ function PrintMPS(mps::MPS)
         PrintDiagonalMPS(mps.X[i][2])
         @printf("\n")
     end
-    
+
     nothing
 end

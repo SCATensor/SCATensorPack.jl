@@ -106,18 +106,13 @@ function RandomMPS(k, n)
         end
 
         l=2
-        for j = indices2[1][1]+1 : indices2[N2][1]+1 
+        for j = indices2[1][1]+1 : indices2[N2][1]+1
             if i==K
                 sizes2[l - 1] = (sizesRow[j - 1], 1)
             else
                 sizes2[l - 1] = (sizesRow[j - 1], sizesCol[j])
             end
             l+=1
-        end
-        for j=1:max(N1,N2+1)
-            @printf("Hello \n")
-            @printf("%d",sizesRow[j])
-            @printf(" %d",sizesCol[j])
         end
         sizesRow=copy(sizesCol)
 

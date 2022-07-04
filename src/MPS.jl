@@ -82,8 +82,8 @@ function RandomMPS(k, n)
     for i = 1 : K
 
 
-        indices1=getindices(i,N,K,1)
-        indices2=getindices(i,N,K,2)
+        indices1=GetIndices(i,N,K,1)
+        indices2=GetIndices(i,N,K,2)
         N1=length(indices1)
         N2=length(indices2)
         sizes1 = Array{Tuple{UInt16, UInt16}}(undef, N1)

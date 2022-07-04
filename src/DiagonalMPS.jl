@@ -296,12 +296,12 @@ end
 
 """
 Author: Siwar Badreddine
-getindices(1,3,6,1)
+GetIndices(1,3,6,1)
 
 Gives back the sub-block indices of the first tensor core X_1[0] for 3 particles and 6 sites
 with respect to the number of particles
 """
-function getindices(i,N,K,diagN)::Array{Tuple{Int64,Int64},1}
+function GetIndices(i,N,K,diagN)::Array{Tuple{Int64,Int64},1}
 
 
     i  = convert(UInt16, i)

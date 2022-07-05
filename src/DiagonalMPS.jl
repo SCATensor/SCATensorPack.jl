@@ -314,7 +314,7 @@ end
 Author: Siwar Badreddine
 indices = GetIndices(1, 3, 6, 1)
 
-Gives back the sub-block indices of the first tensor core X[1] for 3 particles and 6 sites
+Gives back the sub-block indices of the first tensor core X_1[1] for 3 particles and 6 sites
 with respect to the number of particles.
 """
 function GetIndices(i, N, K, diagN)::Array{Tuple{UInt16, UInt16}, 1}

@@ -65,12 +65,14 @@ function RandomMPS(k, n)
         return nothing
     end
  =#
+
+
     K = convert(UInt16, k)
     N = convert(UInt16, n)
-
+    @assert n<=k
     X_ = Array{Tuple{DiagonalMPS, DiagonalMPS}}(undef, K)
-    sizesRow = Array{UInt16}(undef, N + 1)
-    sizesCol = Array{UInt16}(undef, N + 1)
+    sizesRow = Array{UInt16}(undef, N+1)
+    sizesCol = Array{UInt16}(undef, N+1)
     ran = 2 : 2^3
 
     #sizesRow[1], sizesCol[1] = 1, rand(ran)
@@ -78,111 +80,75 @@ function RandomMPS(k, n)
     #for i = 2 : N
         #sizesRow[i], sizesCol[i] = rand(ran), rand(ran)
     #end
-
-    sizesRow[1] = 1
+    sizesRow[1]=1
     for i = 1 : K
-        indices1 = GetIndices(i, N, K, 1)
-        indices2 = GetIndices(i, N, K, 2)
-        N1 = length(indices1)
-        N2 = length(indices2)
+
+
+        indices1=GetIndices(i,N,K,1)
+        indices2=GetIndices(i,N,K,2)
+        N1=length(indices1)
+        N2=length(indices2)
         sizes1 = Array{Tuple{UInt16, UInt16}}(undef, N1)
         sizes2 = Array{Tuple{UInt16, UInt16}}(undef, N2)
 
-        for j = 1 :  max(N1, N2 + 1)
-            sizesCol[j] = rand(ran)
+        for j = 1 :  max(N1,N2+1)
+                 sizesCol[j] =  rand(ran)
         end
 
-        l = 1
-        for j = indices1[1][1] : indices1[N1][1]
-#=             if i == K
+
+
+        l=1
+        for j=indices1[1][1]:indices1[N1][1]
+            if i==K
                 sizes1[l] = (sizesRow[j], 1)
             else
                 sizes1[l] = (sizesRow[j], sizesCol[j])
             end
- =#
-            sizes1[l] = (i == K) ? (sizesRow[j], 1) : (sizesRow[j], sizesCol[j])
-            l += 1
+            l+=1
         end
 
-        l = 2
-        for j = indices2[1][1] + 1 : indices2[N2][1] + 1
-#=             if i == K
+        l=2
+        for j = indices2[1][1]+1 : indices2[N2][1]+1
+            if i==K
                 sizes2[l - 1] = (sizesRow[j - 1], 1)
             else
                 sizes2[l - 1] = (sizesRow[j - 1], sizesCol[j])
             end
- =#
-            sizes2[l - 1] = (i == K) ? (sizesRow[j - 1], 1) : (sizesRow[j - 1], sizesCol[j])
-            l += 1
+            l+=1
         end
-        
-        sizesRow = copy(sizesCol)
-        diag1 = RandomDiagonalMPS(1, N1, sizes1, indices1)
-        diag2 = RandomDiagonalMPS(2, N2, sizes2, indices2)
+        sizesRow=copy(sizesCol)
+
+
+
+
+        diag1 = RandomDiagonalMPS(1, N1, sizes1,indices1)
+        diag2 = RandomDiagonalMPS(2, N2, sizes2,indices2)
         X_[i] = (diag1, diag2)
+
     end
 
     return MPS(K, N, X_)
 end
-
-"""
-DiagonalQR!(diagMPS, 1)
-
-Computes the QR factorization over the first sub-block, overwriting the X[1]
-values with the Q[1] orthogonal matrix values and returning the R[1] upper
-triangular matrix.
-"""
-function MPSDiagonalQR!(diagMPS::DiagonalMPS, i)
-#=     if !isinteger(i)
-        error("$(typeof(i)) is not accepted as index. It should be a positive integer.")
-        return nothing
-    end
- =#
-
-    index = convert(UInt16, i)
-
-    F = qr(diagMPS.X[index])
-    diagMPS.X[index] = Matrix(F.Q)
-
-    return Matrix(F.R)
-end
-
-"""
-DiagonalRXMultiplication!(diagMPS, R, 2)
-
-Multiplies the provided R upper triangular matrix with the X[2], overwriting the X[2]
-values with the result of the multiplication.
-"""
-function MPSDiagonalRXMultiplication!(diagMPS::DiagonalMPS, R, i)
-#=     if !isinteger(i)
-        error("$(typeof(i)) is not accepted as index. It should be a positive integer.")
-        return nothing
-    end
- =#
-
-    R_ = convert(Matrix{Float64}, R)
-    index = convert(UInt16, i)
-
-    diagMPS.X[index] = R_ * diagMPS.X[index]
-
-    nothing
-end
-"""
+#="""
 
 """
 function TT_core(core::Tuple{DiagonalMPS,DiagonalMPS})
     e0=[0;1]
     e1=[1;0]
+    L1=core[1].BlockIndex
+    L2=Tuple{UInt16,UInt16}[(i[1]+1,i[1]+1) for i in core[2].BlockIndex ]
+    if L1[1] in L2
+
     for i in [1,2]
         for coordinates in core[i].BlockIndex
-            
+
 
         end
     end
 
 
 
-end
+end=#
 """
 PrintMPS(mps)
 

@@ -19,7 +19,7 @@ mutable struct DiagonalMPS <: AbstractDiagonalMPS
     DiagNumber::UInt8
     NBlocks::UInt16
     X::Array{Matrix{Float64}}
-    BlockIndex::Array{Tuple{UInt16, UInt16}, 1}
+    BlockIndex::Array{Tuple{UInt16, UInt16}}
     BlockSizes::Array{Tuple{UInt16, UInt16}}
 
     """
@@ -317,7 +317,7 @@ indices = GetIndices(1, 3, 6, 1)
 Gives back the sub-block indices of the first tensor core X_1[1] for 3 particles and 6 sites
 with respect to the number of particles.
 """
-function GetIndices(i, N, K, diagN)::Array{Tuple{UInt16, UInt16}, 1}
+function GetIndices(i, N, K, diagN)::Array{Tuple{UInt16, UInt16}}
 #=     if !isinteger(i)
         error("$(typeof(i)) is not accepted as index. It should be a positive integer.")
         return nothing
@@ -344,8 +344,11 @@ function GetIndices(i, N, K, diagN)::Array{Tuple{UInt16, UInt16}, 1}
     K  = convert(UInt16, K)
     diagN  = convert(UInt8, diagN)
     diagN = (diagN == UInt8(First) || diagN == UInt8(Second)) ? diagN : (diagN < UInt8(First)) ? UInt8(First) : UInt8(Second)
+    #=if diagN==2
+        diagN+=1
+    end=#
 
-    indices = Array{Tuple{UInt16, UInt16}, 1}(undef)
+    indices = Array{Tuple{UInt16, UInt16}}(undef)
     if i < (K - N + 1)
         if i > N
             indices = [(l - (diagN - 1), l - (diagN - 1)) for l = diagN : N+1]

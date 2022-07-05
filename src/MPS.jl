@@ -129,7 +129,46 @@ function RandomMPS(k, n)
 
     return MPS(K, N, X_)
 end
- 
+"""
+DiagonalQR!(diagMPS, 1)
+Computes the QR factorization over the first sub-block, overwriting the X[1]
+values with the Q[1] orthogonal matrix values and returning the R[1] upper
+triangular matrix.
+"""
+function MPSDiagonalQR!(diagMPS::DiagonalMPS, i)
+#=     if !isinteger(i)
+        error("$(typeof(i)) is not accepted as index. It should be a positive integer.")
+        return nothing
+    end
+ =#
+
+    index = convert(UInt16, i)
+
+    F = qr(diagMPS.X[index])
+    diagMPS.X[index] = Matrix(F.Q)
+
+    return Matrix(F.R)
+end
+
+"""
+DiagonalRXMultiplication!(diagMPS, R, 2)
+Multiplies the provided R upper triangular matrix with the X[2], overwriting the X[2]
+values with the result of the multiplication.
+"""
+function MPSDiagonalRXMultiplication!(diagMPS::DiagonalMPS, R, i)
+#=     if !isinteger(i)
+        error("$(typeof(i)) is not accepted as index. It should be a positive integer.")
+        return nothing
+    end
+ =#
+
+    R_ = convert(Matrix{Float64}, R)
+    index = convert(UInt16, i)
+
+    diagMPS.X[index] = R_ * diagMPS.X[index]
+
+    nothing
+end
 
 """
 PrintMPS(mps)

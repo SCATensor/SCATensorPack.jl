@@ -348,17 +348,21 @@ function GetIndices(i, N, K, diagN)::Array{Tuple{UInt16, UInt16}, 1}
     indices = Array{Tuple{UInt16, UInt16}, 1}(undef)
     if i < (K - N + 1)
         if i > N
-            indices = [(l - (diagN - 1), l - (diagN - 1)) for l = diagN : N+1]
+            #indices = [(l - (diagN - 1), l - (diagN - 1)) for l = diagN : N+1]
+            indices = [(l - (diagN - 1), l ) for l = diagN : N+1]
         else
-            indices = [(l, l) for l = 1 : i]
+            #indices = [(l, l) for l = 1 : i]
+            indices = [(l, l+(diagN-1)) for l = 1 : i]
         end
     else
         leq = i - (K - N) + 1 - (diagN - 1)
         geq = N - (diagN - 1) + 1
         if i <= N
-            indices = [(l, l) for l = leq : (N - i + 1) + 1]
+#            indices = [(l, l) for l = leq : (N - i + 1) + 1]
+            indices = [(l, l+(diagN-1)) for l = leq : (N - i + 1) + 1]
         else
-            indices = [(l, l) for l = leq : geq]
+#            indices = [(l, l) for l = leq : geq]
+            indices = [(l, l+(diagN-1)) for l = leq : geq]
         end
     end
 

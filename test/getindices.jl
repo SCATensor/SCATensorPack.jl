@@ -1,4 +1,4 @@
-# Test getindices function 
+# Test getindices function
 using Test
 using Printf
 include("../src/DiagonalMPS.jl")
@@ -8,7 +8,7 @@ include("../src/DiagonalMPS.jl")
         @printf("N: %d K: %d",N,K)
         for i=1:K
             for j=1:2
-                indices::Array{Tuple{Int64,Int64},1}= getindices(i,N,K,j)
+                indices::Array{Tuple{Int64,Int64},1}= GetIndices(i,N,K,j)
                 @printf("X[%d][%d]: ", i,j-1)
                 for i = 1 : length(indices)
                     @printf("(%d, %d), ", indices[i][1], indices[i][2])

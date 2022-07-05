@@ -129,26 +129,8 @@ function RandomMPS(k, n)
 
     return MPS(K, N, X_)
 end
-#="""
+ 
 
-"""
-function TT_core(core::Tuple{DiagonalMPS,DiagonalMPS})
-    e0=[0;1]
-    e1=[1;0]
-    L1=core[1].BlockIndex
-    L2=Tuple{UInt16,UInt16}[(i[1]+1,i[1]+1) for i in core[2].BlockIndex ]
-    if L1[1] in L2
-
-    for i in [1,2]
-        for coordinates in core[i].BlockIndex
-
-
-        end
-    end
-
-
-
-end=#
 """
 PrintMPS(mps)
 

@@ -349,7 +349,6 @@ function GetIndices(i, N, K, diagN)::Array{Tuple{UInt16, UInt16}}
     indices = Array{Tuple{UInt16, UInt16}}(undef)
     if i < (K - N + 1)
         if i > N
-
             #indices = [(l - (diagN - 1), l - (diagN - 1)) for l = diagN : N+1]
             indices = [(l - (diagN - 1), l ) for l = diagN : N+1]
         else

@@ -1,4 +1,5 @@
 using Printf
+using BlockArrays
 
 abstract type AbstractMPS end
 
@@ -168,6 +169,63 @@ function MPSDiagonalRXMultiplication!(diagMPS::DiagonalMPS, R, i)
     diagMPS.X[index] = R_ * diagMPS.X[index]
 
     nothing
+end
+
+"""
+TT_MPS(mps::MPS,k)
+returns the tensor train format of the mps for a given number of sites
+"""
+function TT_MPS(mps::MPS,k)
+    K = convert(UInt16, k)
+    tt_mps::Array{AbstractArray{Float64}, 1} = []
+    for i=1:K
+        push!(tt_mps,TT_core(mps.X[i]))
+    end
+    return tt_mps
+end
+
+"""
+TT_core(mps.X[k])
+returns the complete tensor core of the site k
+"""
+function TT_core(core::Tuple{DiagonalMPS,DiagonalMPS})
+    Sizes::Tuple{Array{UInt16,1},Array{UInt16,1}}=GetSizes(core)
+    r_left=Int.(sum(Sizes[1]))
+    r_right=Int.(sum(Sizes[2]))
+
+    X::Array{Float64,3}=zeros(r_left,2,r_right)
+    for j=1:2
+        B=BlockArray(spzeros(r_left,r_right), Int64.(Sizes[1]), Int64.(Sizes[2]))
+        B_sizes=core[j].BlockSizes
+        R=copy(Sizes[1])
+        C=copy(Sizes[2])
+        for i in length(B_sizes)
+            idx1=findall(isequal(B_sizes[i][1]), R)[1]
+            idx2=findall(isequal(B_sizes[i][2]), C)[1]
+            T=(idx1,idx2)
+            B[Block(T)]=GetDiagonalBlock(core[j], i)
+            R[idx1]=0;C[idx2]=0
+        end
+        X[:,j,:]=B;
+    end
+    return X
+end
+"""
+GetSizes(mps.X[k])
+returns the Row and column sizes which are the ranks (\rho_k,0,\rho_k,1,...,\rho_k,N)
+with k is the number of the local core and N is the number of particles
+"""
+function GetSizes(core::Tuple{DiagonalMPS,DiagonalMPS})::Tuple{Array{UInt16,1},Array{UInt16,1}}
+    indices=[core[1].BlockIndex; core[2].BlockIndex]
+    Sizes=[core[1].BlockSizes; core[2].BlockSizes]
+    sortidx=sortperm(indices)
+    Sizes=Sizes[sortidx]
+    sort!(indices)
+    id1= indexin(unique(getfield.(indices, 1)), getfield.(indices, 1))
+    id2= indexin(unique(getfield.(indices, 2)), getfield.(indices, 2))
+    RowSizes=getfield.(Sizes, 1)[id1]
+    ColSizes=getfield.(Sizes, 2)[id2]
+    return (RowSizes,ColSizes)
 end
 
 """

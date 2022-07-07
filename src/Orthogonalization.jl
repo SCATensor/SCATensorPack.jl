@@ -28,9 +28,8 @@ function Right_orth_local!(mps1::Tuple{DiagonalMPS,DiagonalMPS},
             id2=findall(isequal(getfield.(L1, 2)[j]), getfield.(L2, 2))[1]
             Block=[GetDiagonalBlock(mps1[2],id2);GetDiagonalBlock(mps1[1], j)]
             F=qr(Block)
-            Q=F.Q*Matrix(I,size(Block))
-            Update!(mps1,Q,[id2,j],concat=true)
-            DiagonalRXMultiplication!(mps2, F.R,getfield.(L1, 2)[j])
+            Update!(mps1,Matrix(F.Q),[id2,j],concat=true)
+            DiagonalRXMultiplication!(mps2, Matrix(F.R),getfield.(L1, 2)[j])
         else
             Block=GetDiagonalBlock(mps1[1], j)
             F=qr(Block)
@@ -98,18 +97,18 @@ function Update!(mps::Tuple{DiagonalMPS,DiagonalMPS},Q,id;concat=true,flag=1)
     Q_ = convert(Matrix{Float64}, Q)
     id_= convert(Array{UInt64,1}, id)
     if concat
-        iter=Int(mps[1].BlockSizes[id_[1]][1])
+        iter=Int(mps[2].BlockSizes[id_[1]][1])
         mps[2].X[id_[1]]=@view(Q_[1:iter,:])
         mps[1].X[id_[2]]=@view(Q_[iter+1:end,:])
-        mps[1].BlockSizes=[UInt16.(size(Q_[iter+1:end,:]))]
-        mps[2].BlockSizes=[UInt16.(size(Q_[1:iter,:]))]
+        mps[1].BlockSizes[id_[2]]=UInt16.(size(Q_[iter+1:end,:]))
+        mps[2].BlockSizes[id_[1]]=UInt16.(size(Q_[1:iter,:]))
     else
         if flag==1
             mps[1].X[id_[1]]=Q_
-            mps[1].BlockSizes=[UInt16.(size(Q_))]
+            mps[1].BlockSizes[id_[1]]=UInt16.(size(Q_))
         else
             mps[2].X[id_[1]]=Q_
-            mps[2].BlockSizes=[UInt16.(size(Q_))]
+            mps[2].BlockSizes[id_[1]]=UInt16.(size(Q_))
         end
     end
     nothing
@@ -127,12 +126,16 @@ function DiagonalRXMultiplication!(mps::Tuple{DiagonalMPS,DiagonalMPS},R,idx)
     id1=findall(isequal(idx), getfield.(mps[1].BlockIndex, 1))
     id2=findall(isequal(idx), getfield.(mps[2].BlockIndex, 1))
     if !isempty(id1)
-        mps[1].X[id1[1]]= R_ * mps[1].X[id1[1]]
-        mps[1].BlockSizes[id1[1]]=size(mps[1].X[id1[1]])
+        for k=1:length(id1)
+            mps[1].X[id1[k]]= R_ * mps[1].X[id1[k]]
+            mps[1].BlockSizes[id1[k]]=size(mps[1].X[id1[k]])
+        end
     end
     if !isempty(id2)
-        mps[2].X[id2[1]]= R_ * mps[2].X[id2[1]]
-        mps[2].BlockSizes[id2[1]]=UInt16.(size(mps[2].X[id2[1]]))
+        for k=1:length(id2)
+            mps[2].X[id2[k]]= R_ * mps[2].X[id2[k]]
+            mps[2].BlockSizes[id2[k]]=UInt16.(size(mps[2].X[id2[k]]))
+        end
     end
 
     nothing

@@ -192,24 +192,28 @@ function TT_core(core::Tuple{DiagonalMPS,DiagonalMPS})
     Sizes::Tuple{Array{UInt16,1},Array{UInt16,1}}=GetSizes(core)
     r_left=Int.(sum(Sizes[1]))
     r_right=Int.(sum(Sizes[2]))
-
+    Row_indices=sort([getfield.(core[1].BlockIndex,1);getfield.(core[2].BlockIndex,1)])
+    Col_indices=sort([getfield.(core[1].BlockIndex,2); getfield.(core[2].BlockIndex,2)])
+    gap_row=0;gap_col=0
+    if minimum(Row_indices) != 1
+        gap_row=Row_indices[1]-1
+    end
+    if minimum(Col_indices) != 1
+        gap_col=Col_indices[1]-1
+    end
     X::Array{Float64,3}=zeros(r_left,2,r_right)
     for j=1:2
         B=BlockArray(spzeros(r_left,r_right), Int64.(Sizes[1]), Int64.(Sizes[2]))
         B_sizes=core[j].BlockSizes
-        R=copy(Sizes[1])
-        C=copy(Sizes[2])
-        for i in length(B_sizes)
-            idx1=findall(isequal(B_sizes[i][1]), R)[1]
-            idx2=findall(isequal(B_sizes[i][2]), C)[1]
-            T=(idx1,idx2)
+        for i=1:length(B_sizes)
+            T=(core[j].BlockIndex[i][1]-gap_row,core[j].BlockIndex[i][2]-gap_col)
             B[Block(T)]=GetDiagonalBlock(core[j], i)
-            R[idx1]=0;C[idx2]=0
         end
         X[:,j,:]=B;
     end
     return X
 end
+
 """
 GetSizes(mps.X[k])
 returns the Row and column sizes which are the ranks (\rho_k,0,\rho_k,1,...,\rho_k,N)

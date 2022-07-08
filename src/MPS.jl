@@ -1,5 +1,6 @@
 using Printf
 using BlockArrays
+using SparseArrays
 
 abstract type AbstractMPS end
 

@@ -62,7 +62,7 @@ end
 end
 
 @testset "Time Comparision: Right_orthogonlization " begin
-    K=100
+    K=10
     N=2
     mps = RandomMPS(K, N)
     #Construct TT mps

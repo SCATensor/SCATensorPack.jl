@@ -1,6 +1,6 @@
 #+"""Build Right orthogonalization and left orthogonalization of MPS with QR"""
 using LinearAlgebra
-
+using SparseArrays
 """
 Right_orth(mps,K)
 Computes the QR factorization from left to right of given mps structure  with K sites

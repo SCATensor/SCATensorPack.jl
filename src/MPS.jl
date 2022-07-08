@@ -12,20 +12,25 @@ mutable struct MPS <: AbstractMPS
     X::Array{Tuple{DiagonalMPS, DiagonalMPS}}
 
     """
-    mps = MPS(2, 3, [(diag00MPS, diag01MPS), (diag10MPS, diag11MPS), (diag20MPS, diag21MPS)])
+    mps = MPS(3, 3, [(diag11MPS, diag12MPS, diag13MPS), (diag21MPS, diag22MPS, diag23MPS), (diag31MPS, diag32MPS,diag33MPS)])
 
-    Constructs a new MPS structure with two sites and three particles. Each of the
+    Constructs a new MPS structure with 3 sites and 3 particles. Each of the
     DiagonalMPS passed as third argument should be previously created.
     """
     function MPS(k, n, x)
-        new(k, n, x)
+        K = convert(UInt16, k)
+        N = convert(UInt16, n)
+    
+        @assert (K >= N) "KSites should be greater or equal to NParticles"
+
+        new(K, N, x)
     end
 end
 
 """
-mps = MPS(2, 3)
+mps = MPS(3, 3)
 
-Constructs a new MPS structure with two sites and three particles. Each of the
+Constructs a new MPS structure with 3 sites and 3 particles. Each of the
 DiagonalMPS contained in the MPS are set to "undef" values.
 """
 function MPS(k, n)
@@ -41,15 +46,18 @@ function MPS(k, n)
  =#
     K = convert(UInt16, k)
     N = convert(UInt16, n)
+
+    @assert (K >= N) "KSites should be greater or equal to NParticles"
+
     X_ = Array{Tuple{DiagonalMPS, DiagonalMPS}}(undef, K)
 
     return MPS(K, N, X_)
 end
 
 """
-mps = RandomMPS(2, 3)
+mps = RandomMPS(3, 3)
 
-Constructs a new MPS structure with two sites and three particles. Each of the
+Constructs a new MPS structure with 3 sites and 3 particles. Each of the
 DiagonalMPS contained in the MPS are generated randomly; this is, with random
 sizes in the range (2 : 2^3) and elements in the sub-blocks are set to random
 floating point values.
@@ -67,6 +75,8 @@ function RandomMPS(k, n)
  =#
     K = convert(UInt16, k)
     N = convert(UInt16, n)
+
+    @assert (K >= N) "KSites should be greater or equal to NParticles"
 
     X_ = Array{Tuple{DiagonalMPS, DiagonalMPS}}(undef, K)
     sizesRow = Array{UInt16}(undef, N + 1)
@@ -126,9 +136,9 @@ function RandomMPS(k, n)
 end
 
 """
-DiagonalQR!(diagMPS, 1)
+MPS_QR!(MPS, 1)
 
-Computes the QR factorization over the first sub-block, overwriting the X[1]
+Computes the QR factorization over the first block concatenation, overwriting the X[1]
 values with the Q[1] orthogonal matrix values and returning the R[1] upper
 triangular matrix.
 """
@@ -166,6 +176,77 @@ function MPSDiagonalRXMultiplication!(diagMPS::DiagonalMPS, R, i)
     diagMPS.X[index] = R_ * diagMPS.X[index]
 
     nothing
+end
+
+"""
+concatDiagonalMPS = ConcatDiagonalMPS(mps, 1)
+
+Concatenates all sub-blocks from X[1]/X[2] DiagonalMPS structures by column in site 1.
+This is, all sub-blocks belonging to the same column will be concatenated if possible,
+putting the sub-block on X[2] on top of the sub-block on X[1]. For example:
+
+X[1][1,1]   X[2][1,2]
+            X[1][2,2]   X[2][2,3]
+                        X[1][3,3]
+    |           |           |
+Single      Concat of   Concat of
+block       two blocks  two blocks
+
+If there are not sub-blocks on the column, it will put an empty matrix. After all possible
+concatenations have finished, it will return the array of matrices.
+"""
+function ConcatDiagonalMPS(mps::MPS, k)
+#=     if !isinteger(k)
+        error("$(typeof(k)) is not accepted as site number. It should be a positive integer.")
+        return nothing
+    end
+ =#
+
+    K = convert(UInt16, k)
+    maxi = max(maximum(mps.X[K][1].BlockIndex), maximum(mps.X[K][2].BlockIndex))[2]
+    con = Array{Matrix{Float64}}(undef, maxi)
+
+    for i = 1 : maxi
+        index1 = findall(t -> t[2] == i, mps.X[K][1].BlockIndex)
+        index2 = findall(t -> t[2] == i, mps.X[K][2].BlockIndex)
+        con[i] = (!isempty(index1) && !isempty(index2)) ? vcat(mps.X[K][2].X[index2[1]], mps.X[K][1].X[index1[1]]) :
+                 (!isempty(index1) && isempty(index2)) ? mps.X[K][1].X[index1[1]] :
+                 (isempty(index1) && !isempty(index2)) ? mps.X[K][2].X[index2[1]] :
+                 Matrix(undef, 0, 0);
+    end
+
+    return con
+end
+
+"""
+concatAllDiagonalMPS = ConcatAllDiagonalMPS(mps)
+
+Concatenates all sub-blocks from all X[K][1]/X[K][2] DiagonalMPS structures by column
+in all K sites. This is, for every site, all sub-blocks belonging to the same column
+will be concatenated if possible, putting the sub-block on X[K][2] on top of the sub-block
+on X[K][1]. For example:
+
+X_1[1][1,1]   X_1[2][1,2]
+    |           |
+Single      Single
+block       block
+
+            X_2[2][1,2]
+            X_2[1][2,2] X_2[2][2,3]
+    |           |           |
+Empty       Concat of   Single
+block       two blocks  block
+
+If there are not sub-blocks on the column, it will put an empty matrix. After all possible
+concatenations have finished, it will return the array of concatenated matrices.
+"""
+function ConcatAllDiagonalMPS(mps::MPS)
+    allCon = Array{Array{Matrix{Float64}}}(undef, mps.KSites)
+    for i = 1 : mps.KSites
+        allCon[i] = ConcatDiagonalMPS(mps, i)
+    end
+
+    return con
 end
 
 """

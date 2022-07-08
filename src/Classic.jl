@@ -1,7 +1,11 @@
 #""" The functions introduced here are only for comparison purposes"""
 using TensorOperations
 
-function TT_qr_R!(mps::Array{AbstractArray{Float64}, 1},k)
+""" TT_qr_L!(mps,k)
+returns left orthogonal k-1 tensor cores  where k is the number of sites and mps
+is the tensor train (not considering the sparse block structure)
+"""
+function TT_qr_L!(mps::Array{AbstractArray{Float64}, 1},k)
     nsites=index = convert(UInt16, k)
     for i=1:nsites-1
         r_0=size(mps[i],1)
@@ -16,6 +20,29 @@ function TT_qr_R!(mps::Array{AbstractArray{Float64}, 1},k)
     nothing
 end
 
+""" TT_qr_R!(mps,k)
+returns right orthogonal k-1 tensor cores  where k is the number of sites and mps
+is the tensor train (not considering the sparse block structure)
+"""
+function TT_qr_R!(mps::Array{AbstractArray{Float64}, 1},k)
+    nsites=index = convert(UInt16, k)
+    for i=nsites:-1:2
+        r_0=size(mps[i],1)
+        r_1=size(mps[i],3)
+        X=reshape(mps[i],r_0,2*r_1)
+        F=lq(X)
+        Q=Matrix(F.Q)
+        R=Matrix(F.L)
+        mps[i]=reshape(Matrix(F.Q),size(Q,1),2,r_1)
+        @tensor mps[i-1][β,s,α] := mps[i-1][β,s,γ]* R[γ,α] 
+    end
+    nothing
+end
+"""
+contract_mps(tensors)
+returns the k-the order tensor in R^{2^k} (k is the number of sites) given
+ the tensor train denoted by tensors
+"""
 function contract_mps(tensors::Array{AbstractArray{Float64},1})::AbstractArray{Float64}
     full_tensor = tensors[1]
     for i in 2:length(tensors)

@@ -18,3 +18,16 @@ include("../src/Classic.jl")
         @test X'*X ≈ I
     end
 end
+
+@testset "right_rounding" begin
+    K=20
+    N=2
+    mps = RandomMPS(K, N)
+    Right_orth!(mps,K);
+
+    for i=K:-1:2
+        X=TT_core(mps.X[i])
+        X=reshape(X,size(X,1),:)
+        @test X*X' ≈ I
+    end
+end

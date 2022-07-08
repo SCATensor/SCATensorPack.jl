@@ -15,7 +15,7 @@ end
 
 
 """
-Left_orth_local(mps1,mps2)
+Left_rounding_local(mps1,mps2)
 Computes the SVD decomposition of the local tensor core mps1 and updates mps2
 """
 function Left_rounding_local!(mps1::Tuple{DiagonalMPS,DiagonalMPS},
@@ -48,51 +48,53 @@ function Left_rounding_local!(mps1::Tuple{DiagonalMPS,DiagonalMPS},
 end
 
 """
-Left_rounding(mps,K;δ)
-Computes the SVD decomposition  from left to right of given mps structure  with K sites
+Right_rounding(mps,K;δ)
+Computes the SVD decomposition  from  right to left of given mps structure  with K sites
 δ is the truncation error
 """
-function Left_rounding!(mps::MPS,K;δ::Float64=1e-12)
+function Right_rounding!(mps::MPS,K;δ::Float64=1e-12)
 	nsites = convert(UInt16, K)
-	for i=1:nsites-1
-		Left_rounding_local!(mps.X[i],mps.X[i+1],δ=δ)
+	for i=nsites:-1:2
+		Right_rounding_local!(mps.X[i],mps.X[i-1],δ=δ)
 	end
 	nothing
 end
 
 
 """
-Left_orth_local(mps1,mps2)
+Right_rounding_local(mps1,mps2)
 Computes the SVD decomposition of the local tensor core mps1 and updates mps2
 """
-function Left_rounding_local!(mps1::Tuple{DiagonalMPS,DiagonalMPS},
-	mps2::Tuple{DiagonalMPS,DiagonalMPS};δ=1e-12)
-	L1=mps1[1].BlockIndex
-	L2=mps1[2].BlockIndex
-	for j=1:length(L1)
-		if getfield.(L1, 2)[j] in getfield.(L2, 2)
-			id2=findall(isequal(getfield.(L1, 2)[j]), getfield.(L2, 2))[1]
-			Block=[GetDiagonalBlock(mps1[2],id2);GetDiagonalBlock(mps1[1], j)]
-			U,SV=truncated_svd(Block,δ=δ)
-			Update_left!(mps1,U,[id2,j],concat=true)
-			Left_DiagonalRXMultiplication!(mps2, SV,getfield.(L1, 2)[j])
-		else
-			Block=GetDiagonalBlock(mps1[1], j)
-			U,SV=truncated_svd(Block,δ=δ)
-			Update_left!(mps1,U,[j],concat=false,flag=1)
-			Left_DiagonalRXMultiplication!(mps2, SV,getfield.(L1, 2)[j])
-		end
-	end
-	for j=1:length(L2)
-		if getfield.(L2, 2)[j]   ∉ getfield.(L1, 2)
-			Block=GetDiagonalBlock(mps1[2], j)
-			U,SV=truncated_svd(Block,δ=δ)
-			Update_left!(mps1,U,[j],concat=false,flag=2)
-			Left_DiagonalRXMultiplication!(mps2,SV,getfield.(L2, 2)[j])
-		end
-	end
-	nothing
+
+function Right_rounding_local!(mps1::Tuple{DiagonalMPS,DiagonalMPS},
+    mps2::Tuple{DiagonalMPS,DiagonalMPS};δ=1e-12)
+    L1=mps1[1].BlockIndex
+    L2=mps1[2].BlockIndex
+    for j=1:length(L1)
+        if getfield.(L1, 1)[j] in getfield.(L2, 1)
+            id2=findall(isequal(getfield.(L1, 1)[j]), getfield.(L2, 1))[1]
+            Block=[GetDiagonalBlock(mps1[2],id2) GetDiagonalBlock(mps1[1], j)]
+            US,V=truncated_svd(Block,δ=δ)
+            Update_right!(mps1,V,[id2,j],concat=true)
+            Right_DiagonalRXMultiplication!(mps2, US,getfield.(L1, 1)[j])
+        else
+            Block=GetDiagonalBlock(mps1[1], j)
+            US,V=truncated_svd(Block,δ=δ)
+            Update_right!(mps1,V,[j],concat=false,flag=1)
+            Right_DiagonalRXMultiplication!(mps2, US ,getfield.(L1, 1)[j])
+        end
+    end
+    for j=1:length(L2)
+            if getfield.(L2, 1)[j]   ∉ getfield.(L1, 1)
+                Block=GetDiagonalBlock(mps1[2], j)
+                US,V=truncated_svd(Block,δ=δ)
+                Update_right!(mps1,V,[j],concat=false,flag=2)
+                Right_DiagonalRXMultiplication!(mps2,US,getfield.(L2, 1)[j])
+            end
+    end
+    nothing
 end
+
 
 """
 truncated_svd_residual(m::AbstractArray{Float64,2};tol::Float64=1e-12,

@@ -357,7 +357,7 @@ function GetIndices(i, N, K, diagN)::Array{Tuple{UInt16, UInt16}}
     else
         leq = i - (K - N) + 1 - (diagN - 1)
         geq = N - (diagN - 1) + 1
-        if i <= N
+        if i < N
 #            indices = [(l, l) for l = leq : (N - i + 1) + 1]
             indices = [(l, l+(diagN-1)) for l = leq : (N - i + 1) + 1]
         else

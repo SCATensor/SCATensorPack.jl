@@ -75,7 +75,7 @@ function RandomMPS(k, n)
     X_ = Array{Tuple{DiagonalMPS, DiagonalMPS}}(undef, K)
     sizesRow = Array{UInt16}(undef, N+1)
     sizesCol = Array{UInt16}(undef, N+1)
-    ran = 2 : 2^6
+    ran = 2 : 2^3
 
     #sizesRow[1], sizesCol[1] = 1, rand(ran)
     #sizesRow[N+1], sizesCol[N+1] = rand(ran), 1

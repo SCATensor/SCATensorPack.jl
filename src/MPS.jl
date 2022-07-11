@@ -22,7 +22,7 @@ mutable struct MPS <: AbstractMPS
     function MPS(k, n, x)
         K = convert(UInt16, k)
         N = convert(UInt16, n)
-    
+
         @assert (K >= N) "KSites should be greater or equal to NParticles"
 
         new(K, N, x)
@@ -247,7 +247,7 @@ function ConcatAllDiagonalMPS(mps::MPS)
         allCon[i] = ConcatDiagonalMPS(mps, i)
     end
 
-    return con
+    return allCon
 end
 
 """

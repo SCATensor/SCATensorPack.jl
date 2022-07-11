@@ -45,39 +45,7 @@ function Left_orth_local!(mps1::Tuple{DiagonalMPS,DiagonalMPS},
     end
     nothing
 end
-"""
-Left_orth_local(mps1,mps2)
-Computes the QR factorization of the local tensor core mps1 and updates mps2
-"""
 
-function Left_orth_local!(mps1::Tuple{DiagonalMPS,DiagonalMPS},
-    mps2::Tuple{DiagonalMPS,DiagonalMPS})
-    L1=mps1[1].BlockIndex
-    L2=mps1[2].BlockIndex
-    for j=1:length(L1)
-        if getfield.(L1, 2)[j] in getfield.(L2, 2)
-            id2=findall(isequal(getfield.(L1, 2)[j]), getfield.(L2, 2))[1]
-            Block=[GetDiagonalBlock(mps1[2],id2);GetDiagonalBlock(mps1[1], j)]
-            F=qr(Block)
-            Update_left!(mps1,Matrix(F.Q),[id2,j],concat=true)
-            Left_DiagonalRXMultiplication!(mps2, Matrix(F.R),getfield.(L1, 2)[j])
-        else
-            Block=GetDiagonalBlock(mps1[1], j)
-            F=qr(Block)
-            Update_left!(mps1,Matrix(F.Q),[j],concat=false,flag=1)
-            Left_DiagonalRXMultiplication!(mps2, Matrix(F.R),getfield.(L1, 2)[j])
-        end
-    end
-    for j=1:length(L2)
-            if getfield.(L2, 2)[j]   ∉ getfield.(L1, 2)
-                Block=GetDiagonalBlock(mps1[2], j)
-                F=qr(Block)
-                Update_left!(mps1,Matrix(F.Q),[j],concat=false,flag=2)
-                Left_DiagonalRXMultiplication!(mps2, Matrix(F.R),getfield.(L2, 2)[j])
-            end
-    end
-    nothing
-end
 
 """
 Right_orth(mps,K)

@@ -6,8 +6,8 @@ include("../src/Orthogonalization.jl")
 include("../src/Classic.jl")
 
 @testset "Left_QR" begin
-    K=20
-    N=10
+    K=3
+    N=2
     mps = RandomMPS(K, N)
     Left_orth!(mps,K);
 

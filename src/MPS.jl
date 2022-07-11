@@ -196,7 +196,7 @@ block       two blocks  two blocks
 If there are not sub-blocks on the column, it will put an empty matrix. After all possible
 concatenations have finished, it will return the array of matrices.
 """
-function ConcatDiagonalMPS(mps::MPS, k)
+function ConcatDiagonalMPS_left(mps::MPS, k)
 #=     if !isinteger(k)
         error("$(typeof(k)) is not accepted as site number. It should be a positive integer.")
         return nothing
@@ -211,6 +211,29 @@ function ConcatDiagonalMPS(mps::MPS, k)
         index1 = findall(t -> t[2] == i, mps.X[K][1].BlockIndex)
         index2 = findall(t -> t[2] == i, mps.X[K][2].BlockIndex)
         con[i] = (!isempty(index1) && !isempty(index2)) ? vcat(mps.X[K][2].X[index2[1]], mps.X[K][1].X[index1[1]]) :
+                 (!isempty(index1) && isempty(index2)) ? mps.X[K][1].X[index1[1]] :
+                 (isempty(index1) && !isempty(index2)) ? mps.X[K][2].X[index2[1]] :
+                 Matrix(undef, 0, 0);
+    end
+
+    return con
+end
+
+function ConcatDiagonalMPS_right(mps::MPS, k)
+#=     if !isinteger(k)
+        error("$(typeof(k)) is not accepted as site number. It should be a positive integer.")
+        return nothing
+    end
+ =#
+
+    K = convert(UInt16, k)
+    maxi = max(maximum(mps.X[K][1].BlockIndex), maximum(mps.X[K][2].BlockIndex))[1]
+    con = Array{Matrix{Float64}}(undef, maxi)
+
+    for i = 1 : maxi
+        index1 = findall(t -> t[1] == i, mps.X[K][1].BlockIndex)
+        index2 = findall(t -> t[1] == i, mps.X[K][2].BlockIndex)
+        con[i] = (!isempty(index1) && !isempty(index2)) ? hcat(mps.X[K][1].X[index1[1]], mps.X[K][2].X[index2[1]]) :
                  (!isempty(index1) && isempty(index2)) ? mps.X[K][1].X[index1[1]] :
                  (isempty(index1) && !isempty(index2)) ? mps.X[K][2].X[index2[1]] :
                  Matrix(undef, 0, 0);

@@ -6,42 +6,10 @@ Computes the QR factorization from left to right of given mps structure  with K 
 """
 function Left_orth!(mps::MPS,K)
     nsites = convert(UInt16, K)
+
     for i=1:nsites-1
-         Left_orth_local!(mps.X[i],mps.X[i+1])
-    end
-    nothing
-end
-
-"""
-Left_orth_local(mps1,mps2)
-Computes the QR factorization of the local tensor core mps1 and updates mps2
-"""
-
-function Left_orth_local!(mps1::Tuple{DiagonalMPS,DiagonalMPS},
-    mps2::Tuple{DiagonalMPS,DiagonalMPS})
-    L1=mps1[1].BlockIndex
-    L2=mps1[2].BlockIndex
-    for j=1:length(L1)
-        if getfield.(L1, 2)[j] in getfield.(L2, 2)
-            id2=findall(isequal(getfield.(L1, 2)[j]), getfield.(L2, 2))[1]
-            Block=[GetDiagonalBlock(mps1[2],id2);GetDiagonalBlock(mps1[1], j)]
-            F=qr(Block)
-            Update_left!(mps1,Matrix(F.Q),[id2,j],concat=true)
-            Left_DiagonalRXMultiplication!(mps2, Matrix(F.R),getfield.(L1, 2)[j])
-        else
-            Block=GetDiagonalBlock(mps1[1], j)
-            F=qr(Block)
-            Update_left!(mps1,Matrix(F.Q),[j],concat=false,flag=1)
-            Left_DiagonalRXMultiplication!(mps2, Matrix(F.R),getfield.(L1, 2)[j])
-        end
-    end
-    for j=1:length(L2)
-            if getfield.(L2, 2)[j]   ∉ getfield.(L1, 2)
-                Block=GetDiagonalBlock(mps1[2], j)
-                F=qr(Block)
-                Update_left!(mps1,Matrix(F.Q),[j],concat=false,flag=2)
-                Left_DiagonalRXMultiplication!(mps2, Matrix(F.R),getfield.(L2, 2)[j])
-            end
+         con=ConcatDiagonalMPS_left(mps, i)
+         Left_orth_local!(mps.X[i],mps.X[i+1],con)
     end
     nothing
 end
@@ -51,30 +19,28 @@ Computes the QR factorization of the local tensor core mps1 and updates mps2
 """
 
 function Left_orth_local!(mps1::Tuple{DiagonalMPS,DiagonalMPS},
-    mps2::Tuple{DiagonalMPS,DiagonalMPS})
-    L1=mps1[1].BlockIndex
-    L2=mps1[2].BlockIndex
-    for j=1:length(L1)
-        if getfield.(L1, 2)[j] in getfield.(L2, 2)
-            id2=findall(isequal(getfield.(L1, 2)[j]), getfield.(L2, 2))[1]
-            Block=[GetDiagonalBlock(mps1[2],id2);GetDiagonalBlock(mps1[1], j)]
-            F=qr(Block)
-            Update_left!(mps1,Matrix(F.Q),[id2,j],concat=true)
-            Left_DiagonalRXMultiplication!(mps2, Matrix(F.R),getfield.(L1, 2)[j])
-        else
-            Block=GetDiagonalBlock(mps1[1], j)
-            F=qr(Block)
-            Update_left!(mps1,Matrix(F.Q),[j],concat=false,flag=1)
-            Left_DiagonalRXMultiplication!(mps2, Matrix(F.R),getfield.(L1, 2)[j])
+    mps2::Tuple{DiagonalMPS,DiagonalMPS},block::Array{Array{Float64,2},1})
+    maxi = max(maximum(mps1[1].BlockIndex), maximum(mps1[2].BlockIndex))[2]
+
+    Threads.@threads    for i=1:length(block)
+        index1 = findall(t -> t[2] == i, mps1[1].BlockIndex)
+        index2 = findall(t -> t[2] == i, mps1[2].BlockIndex)
+        if (!isempty(index1) && !isempty(index2))
+            F=qr(block[i])
+            Update_left!(mps1,Matrix(F.Q),vcat(index2,index1),concat=true)
+            idx=mps1[1].BlockIndex[index1[1]][2]
+            Left_DiagonalRXMultiplication!(mps2, Matrix(F.R),idx)
+        elseif (!isempty(index1) && isempty(index2))
+            F=qr(block[i])
+            Update_left!(mps1,Matrix(F.Q),index1,concat=false,flag=1)
+            idx=mps1[1].BlockIndex[index1[1]][2]
+            Left_DiagonalRXMultiplication!(mps2, Matrix(F.R),idx)
+        elseif (isempty(index1) && !isempty(index2))
+            F=qr(block[i])
+            Update_left!(mps1,Matrix(F.Q),index2,concat=false,flag=2)
+            idx=mps1[2].BlockIndex[index2[1]][2]
+            Left_DiagonalRXMultiplication!(mps2, Matrix(F.R),idx)
         end
-    end
-    for j=1:length(L2)
-            if getfield.(L2, 2)[j]   ∉ getfield.(L1, 2)
-                Block=GetDiagonalBlock(mps1[2], j)
-                F=qr(Block)
-                Update_left!(mps1,Matrix(F.Q),[j],concat=false,flag=2)
-                Left_DiagonalRXMultiplication!(mps2, Matrix(F.R),getfield.(L2, 2)[j])
-            end
     end
     nothing
 end
@@ -87,7 +53,8 @@ Computes the QR factorization from right to left of given mps structure  with K 
 function Right_orth!(mps::MPS,K)
     nsites = convert(UInt16, K)
     for i=nsites:-1:2
-         Right_orth_local!(mps.X[i],mps.X[i-1])
+         con=ConcatDiagonalMPS_right(mps, i)
+         Right_orth_local!(mps.X[i],mps.X[i-1],con)
     end
     nothing
 end
@@ -97,34 +64,34 @@ Right_orth_local(mps1,mps2)
 Computes the QR factorization of the local tensor core mps1 and updates mps2
 """
 
+
 function Right_orth_local!(mps1::Tuple{DiagonalMPS,DiagonalMPS},
-    mps2::Tuple{DiagonalMPS,DiagonalMPS})
-    L1=mps1[1].BlockIndex
-    L2=mps1[2].BlockIndex
-    for j=1:length(L1)
-        if getfield.(L1, 1)[j] in getfield.(L2, 1)
-            id2=findall(isequal(getfield.(L1, 1)[j]), getfield.(L2, 1))[1]
-            Block=[GetDiagonalBlock(mps1[2],id2) GetDiagonalBlock(mps1[1], j)]
-            F=lq(Block)
-            Update_right!(mps1,Matrix(F.Q),[id2,j],concat=true)
-            Right_DiagonalRXMultiplication!(mps2, Matrix(F.L),getfield.(L1, 1)[j])
-        else
-            Block=GetDiagonalBlock(mps1[1], j)
-            F=lq(Block)
-            Update_right!(mps1,Matrix(F.Q),[j],concat=false,flag=1)
-            Right_DiagonalRXMultiplication!(mps2, Matrix(F.L),getfield.(L1, 1)[j])
+    mps2::Tuple{DiagonalMPS,DiagonalMPS},block::Array{Array{Float64,2},1})
+    maxi = max(maximum(mps1[1].BlockIndex), maximum(mps1[2].BlockIndex))[1]
+
+    Threads.@threads for i=1:length(block)
+        index1 = findall(t -> t[1] == i, mps1[1].BlockIndex)
+        index2 = findall(t -> t[1] == i, mps1[2].BlockIndex)
+        if (!isempty(index1) && !isempty(index2))
+            F=lq(block[i])
+            Update_right!(mps1,Matrix(F.Q),vcat(index2,index1),concat=true)
+            idx=mps1[1].BlockIndex[index1[1]][1]
+            Right_DiagonalRXMultiplication!(mps2, Matrix(F.L),idx)
+        elseif (!isempty(index1) && isempty(index2))
+            F=lq(block[i])
+            Update_right!(mps1,Matrix(F.Q),index1,concat=false,flag=1)
+            idx=mps1[1].BlockIndex[index1[1]][1]
+            Right_DiagonalRXMultiplication!(mps2, Matrix(F.L),idx)
+        elseif (isempty(index1) && !isempty(index2))
+            F=lq(block[i])
+            Update_right!(mps1,Matrix(F.Q),index2,concat=false,flag=2)
+            idx=mps1[2].BlockIndex[index2[1]][1]
+            Right_DiagonalRXMultiplication!(mps2, Matrix(F.L),idx)
         end
-    end
-    for j=1:length(L2)
-            if getfield.(L2, 1)[j]   ∉ getfield.(L1, 1)
-                Block=GetDiagonalBlock(mps1[2], j)
-                F=lq(Block)
-                Update_right!(mps1,Matrix(F.Q),[j],concat=false,flag=2)
-                Right_DiagonalRXMultiplication!(mps2, Matrix(F.L),getfield.(L2, 1)[j])
-            end
     end
     nothing
 end
+
 
 """
 Update!(mps1,Q,idx)
@@ -219,3 +186,84 @@ function Right_DiagonalRXMultiplication!(mps::Tuple{DiagonalMPS,DiagonalMPS},R,i
 
     nothing
 end
+
+
+#=
+"""
+Left_orth(mps,K)
+Computes the QR factorization from left to right of given mps structure  with K sites
+"""
+function Left_orth!(mps::MPS,K)
+    nsites = convert(UInt16, K)
+    for i=1:nsites-1
+         Left_orth_local!(mps.X[i],mps.X[i+1])
+    end
+    nothing
+end
+"""
+Left_orth_local(mps1,mps2)
+Computes the QR factorization of the local tensor core mps1 and updates mps2
+"""
+
+function Left_orth_local!(mps1::Tuple{DiagonalMPS,DiagonalMPS},
+    mps2::Tuple{DiagonalMPS,DiagonalMPS})
+    L1=mps1[1].BlockIndex
+    L2=mps1[2].BlockIndex
+    for j=1:length(L1)
+        if getfield.(L1, 2)[j] in getfield.(L2, 2)
+            id2=findall(isequal(getfield.(L1, 2)[j]), getfield.(L2, 2))[1]
+            Block=[GetDiagonalBlock(mps1[2],id2);GetDiagonalBlock(mps1[1], j)]
+            F=qr(Block)
+            Update_left!(mps1,Matrix(F.Q),[id2,j],concat=true)
+            Left_DiagonalRXMultiplication!(mps2, Matrix(F.R),getfield.(L1, 2)[j])
+        else
+            Block=GetDiagonalBlock(mps1[1], j)
+            F=qr(Block)
+            Update_left!(mps1,Matrix(F.Q),[j],concat=false,flag=1)
+            Left_DiagonalRXMultiplication!(mps2, Matrix(F.R),getfield.(L1, 2)[j])
+        end
+    end
+    for j=1:length(L2)
+            if getfield.(L2, 2)[j]   ∉ getfield.(L1, 2)
+                Block=GetDiagonalBlock(mps1[2], j)
+                F=qr(Block)
+                Update_left!(mps1,Matrix(F.Q),[j],concat=false,flag=2)
+                Left_DiagonalRXMultiplication!(mps2, Matrix(F.R),getfield.(L2, 2)[j])
+            end
+    end
+    nothing
+end
+"""
+Right_orth_local(mps1,mps2)
+Computes the QR factorization of the local tensor core mps1 and updates mps2
+"""
+
+function Right_orth_local!(mps1::Tuple{DiagonalMPS,DiagonalMPS},
+    mps2::Tuple{DiagonalMPS,DiagonalMPS})
+    L1=mps1[1].BlockIndex
+    L2=mps1[2].BlockIndex
+    for j=1:length(L1)
+        if getfield.(L1, 1)[j] in getfield.(L2, 1)
+            id2=findall(isequal(getfield.(L1, 1)[j]), getfield.(L2, 1))[1]
+            Block=[GetDiagonalBlock(mps1[2],id2) GetDiagonalBlock(mps1[1], j)]
+            F=lq(Block)
+            Update_right!(mps1,Matrix(F.Q),[id2,j],concat=true)
+            Right_DiagonalRXMultiplication!(mps2, Matrix(F.L),getfield.(L1, 1)[j])
+        else
+            Block=GetDiagonalBlock(mps1[1], j)
+            F=lq(Block)
+            Update_right!(mps1,Matrix(F.Q),[j],concat=false,flag=1)
+            Right_DiagonalRXMultiplication!(mps2, Matrix(F.L),getfield.(L1, 1)[j])
+        end
+    end
+    for j=1:length(L2)
+            if getfield.(L2, 1)[j]   ∉ getfield.(L1, 1)
+                Block=GetDiagonalBlock(mps1[2], j)
+                F=lq(Block)
+                Update_right!(mps1,Matrix(F.Q),[j],concat=false,flag=2)
+                Right_DiagonalRXMultiplication!(mps2, Matrix(F.L),getfield.(L2, 1)[j])
+            end
+    end
+    nothing
+end
+=#

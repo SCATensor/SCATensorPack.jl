@@ -4,11 +4,11 @@ include("../src/DiagonalMPS.jl")
 include("../src/MPS.jl")
 include("../src/Orthogonalization.jl")
 include("../src/Classic.jl")
-include("../src/Classic.jl")
+include("../src/Rounding.jl")
 
 @testset "Left_rounding" begin
-    K=20
-    N=10
+    K=5
+    N=2
     mps = RandomMPS(K, N)
     Left_rounding!(mps,K);
 

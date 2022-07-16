@@ -12,20 +12,20 @@ mutable struct MPS <: AbstractMPS
     KSites::UInt16
     NParticles::UInt16
     X::Array{Tuple{DiagonalMPS, DiagonalMPS}}
-
+    ranks::Array{Int64,1}
     """
     mps = MPS(3, 3, [(diag11MPS, diag12MPS, diag13MPS), (diag21MPS, diag22MPS, diag23MPS), (diag31MPS, diag32MPS,diag33MPS)])
 
     Constructs a new MPS structure with 3 sites and 3 particles. Each of the
     DiagonalMPS passed as third argument should be previously created.
     """
-    function MPS(k, n, x)
+    function MPS(k, n, x,ranks)
         K = convert(UInt16, k)
         N = convert(UInt16, n)
 
         @assert (K >= N) "KSites should be greater or equal to NParticles"
 
-        new(K, N, x)
+        new(K, N, x,ranks)
     end
 end
 
@@ -52,8 +52,9 @@ function MPS(k, n)
     @assert (K >= N) "KSites should be greater or equal to NParticles"
 
     X_ = Array{Tuple{DiagonalMPS, DiagonalMPS}}(undef, K)
+    ranks=Array{Int64,1}[]
 
-    return MPS(K, N, X_)
+    return MPS(K, N, X_,ranks)
 end
 
 """
@@ -64,7 +65,7 @@ DiagonalMPS contained in the MPS are generated randomly; this is, with random
 sizes in the range (2 : 2^3) and elements in the sub-blocks are set to random
 floating point values.
 """
-function RandomMPS(k, n)
+function RandomMPS(k, n;range=2^3)
 #=     if !isinteger(k)
         error("$(typeof(k)) is not accepted as KSites attribute. It should be a positive integer.")
         return nothing
@@ -83,7 +84,7 @@ function RandomMPS(k, n)
     X_ = Array{Tuple{DiagonalMPS, DiagonalMPS}}(undef, K)
     sizesRow = Array{UInt16}(undef, N + 1)
     sizesCol = Array{UInt16}(undef, N + 1)
-    ran = 2 : 2^3
+    ran = 2 : range
 
     #sizesRow[1], sizesCol[1] = 1, rand(ran)
     #sizesRow[N+1], sizesCol[N+1] = rand(ran), 1
@@ -92,6 +93,7 @@ function RandomMPS(k, n)
     #end
 
     sizesRow[1] = 1
+    ranks=Int64[]
     for i = 1 : K
         indices1 = GetIndices(i, N, K, 1)
         indices2 = GetIndices(i, N, K, 2)
@@ -132,10 +134,18 @@ function RandomMPS(k, n)
         diag1 = RandomDiagonalMPS(1, N1, sizes1, indices1)
         diag2 = RandomDiagonalMPS(2, N2, sizes2, indices2)
         X_[i] = (diag1, diag2)
+        Sizes::Tuple{Array{UInt16,1},Array{UInt16,1}}=GetSizes(X_[i])
+        r_left=Int.(sum(Sizes[1]))
+        push!(ranks,r_left)
     end
 
-    return MPS(K, N, X_)
+
+    return MPS(K, N, X_,ranks)
 end
+
+
+
+
 
 """
 MPS_QR!(MPS, 1)
@@ -351,4 +361,109 @@ function PrintMPS(mps::MPS)
     end
 
     nothing
+end
+
+#==============================================================#
+"""
+For comparison purposes
+"""
+function RandomMPS(k, n,bonds::Array{Int64,1})
+
+    K = convert(UInt16, k)
+    N = convert(UInt16, n)
+
+    @assert (K >= N) "KSites should be greater or equal to NParticles"
+
+    X_ = Array{Tuple{DiagonalMPS, DiagonalMPS}}(undef, K)
+    sizesRow = Array{UInt16}(undef, N + 1)
+    sizesCol = Array{UInt16}(undef, N + 1)
+
+
+
+
+    sizesRow[1] = 1
+    #=R=rounding_(maximum(bonds),N+1)
+    for j = 1 :  N+1
+        sizesCol[j] = R[j] #rand(ran)
+        sizesRow[j] = R[j]
+    end=#
+    ranks=Int64[]
+
+    for i = 1 : K
+        sizesCol = zeros(N+1)
+        indices1 = GetIndices(i, N, K, 1)
+        indices2 = GetIndices(i, N, K, 2)
+        if i!=1
+            List_next_rows =unique([getfield.(GetIndices(i-1, N, K, 1), 2);getfield.(GetIndices(i-1, N, K, 2), 2)]);
+        end
+        N1 = length(indices1)
+        N2 = length(indices2)
+        sizes1 = Array{Tuple{UInt16, UInt16}}(undef, N1)
+        sizes2 = Array{Tuple{UInt16, UInt16}}(undef, N2)
+
+        if  i <K
+            if i <  (K - N + 1)
+                add=1
+            else
+                add=0
+            end
+            R=rounding_(bonds[(end-i)+1],max(N1, N2+add))
+            for j = 1 :  max(N1, N2 +add)
+                sizesCol[j] = R[end-j+1] #rand(ran)
+            end
+        end
+
+        l = 1
+        for j = indices1[1][1] : indices1[N1][1]
+            @show i
+            if i <= (K - N + 1)
+                sizes1[l] = (i == K) ? (sizesRow[j], 1) : (sizesRow[j], sizesCol[l])
+            else
+                idx=findall(isequal(j), List_next_rows)[1]
+                sizes1[l] = (i == K) ? (sizesRow[idx], 1) : (sizesRow[idx], sizesCol[l])
+            end
+            l += 1
+        end
+
+        l = 2
+        for j = indices2[1][1] + 1 : indices2[N2][1] + 1
+            if i < (K - N + 1)
+                sizes2[l - 1] = (i == K) ? (sizesRow[j - 1], 1) : (sizesRow[j - 1], sizesCol[l])
+            else
+                idx=findall(isequal(j-1), List_next_rows)[1]
+                sizes2[l - 1] = (i == K) ? (sizesRow[idx], 1) : (sizesRow[idx], sizesCol[l-1])
+            end
+            l += 1
+        end
+
+        sizesRow = copy(sizesCol)
+
+
+        diag1 = RandomDiagonalMPS(1, N1, sizes1, indices1)
+        diag2 = RandomDiagonalMPS(2, N2, sizes2, indices2)
+        X_[i] = (diag1, diag2)
+        #Sizes::Tuple{Array{UInt16,1},Array{UInt16,1}}=GetSizes(X_[i])
+        Sizes=GetSizes(X_[i])
+        r_left=Int.(sum(Sizes[1]))
+        push!(ranks,r_left)
+    end
+
+
+    return MPS(K, N, X_,ranks)
+end
+
+function rounding_(number,d)
+  R=Int64[]
+  @assert (number >= d)
+  reminder=mod(number,d)
+  mult=div(number,d)
+  for i=1:d-1
+    push!(R,mult)
+  end
+  if reminder !=0
+    push!(R,mult+reminder)
+  else
+    push!(R,mult)
+  end
+  return R
 end

@@ -2,6 +2,9 @@ using Printf
 using BlockArrays
 using SparseArrays
 
+"""
+Abstract type for an MPS structure.
+"""
 abstract type AbstractMPS end
 
 """
